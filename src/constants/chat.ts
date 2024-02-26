@@ -17,12 +17,25 @@ export const _defaultSystemMessage =
 Carefully heed the user's instructions. 
 Respond using Markdown.`;
 
+// Define default messages for each type of companion
+const defaultMessages = {
+  ChatGPT: _defaultSystemMessage,
+  Doctor: `Hello! I'm Doctor AI, here to assist with your health questions. Remember, always consult with a real doctor for medical advice.`,
+  Mentor: `Hi there! I'm Mentor AI, at your service to offer guidance and support on your life's journey.`,
+  ChristianGPT: `Greetings! I'm   , ready to discuss teachings and share insights on faith matters.`,
+};
+
+// Generate the default message based on companion type
+const getDefaultMessage = (companionType: string): string => {
+  return defaultMessages[companionType] || defaultMessages['ChatGPT'];
+};
+
 export const modelOptions: ModelOptions[] = [
   'gpt-3.5-turbo',
   'gpt-3.5-turbo-16k',
   'gpt-4',
   'gpt-4-32k',
-  'gpt-4-1106-preview'
+  'gpt-4-1106-preview',
   // 'gpt-3.5-turbo-0301',
   // 'gpt-4-0314',
   // 'gpt-4-32k-0314',
@@ -109,18 +122,20 @@ export const _defaultChatConfig: ConfigInterface = {
 
 export const generateDefaultChat = (
   title?: string,
-  folder?: string
-): ChatInterface => ({
-  id: uuidv4(),
-  title: title ? title : 'New Chat',
-  messages:
-    useStore.getState().defaultSystemMessage.length > 0
-      ? [{ role: 'system', content: useStore.getState().defaultSystemMessage }]
-      : [],
-  config: { ...useStore.getState().defaultChatConfig },
-  titleSet: false,
-  folder,
-});
+  folder?: string,
+  companionType: string = 'ChatGPT' // Default to ChatGPT if no companionType is provided
+): ChatInterface => {
+  const defaultSystemMessage = getDefaultMessage(companionType);
+
+  return {
+    id: uuidv4(),
+    title: title ?? 'New Chat',
+    messages: [{ role: 'system', content: defaultSystemMessage }],
+    config: { ...useStore.getState().defaultChatConfig },
+    titleSet: false,
+    folder,
+  };
+};
 
 export const codeLanguageSubset = [
   'python',

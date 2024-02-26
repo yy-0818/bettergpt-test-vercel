@@ -30,8 +30,11 @@ import CopyButton from './Button/CopyButton';
 import EditButton from './Button/EditButton';
 import DeleteButton from './Button/DeleteButton';
 import MarkdownModeButton from './Button/MarkdownModeButton';
+import HistoryButton from './Button/HistoryButton';
+import HistoryModal from '../View/OpenHistory';
 
 import CodeBlock from '../CodeBlock';
+import { clone } from 'lodash';
 
 const ContentView = memo(
   ({
@@ -48,6 +51,10 @@ const ContentView = memo(
     const { handleSubmit } = useSubmit();
 
     const [isDelete, setIsDelete] = useState<boolean>(false);
+
+    const { user } = useStore((state) => ({
+      user: state.user as User,
+    }));
 
     const currentChatIndex = useStore((state) => state.currentChatIndex);
     const setChats = useStore((state) => state.setChats);
@@ -103,8 +110,32 @@ const ContentView = memo(
       navigator.clipboard.writeText(content);
     };
 
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+
+    const historyChats: ChatInterface[] = JSON.parse(
+      JSON.stringify(useStore.getState().chats)
+    );
+    const sessionId = currentChatIndex;
+    const query = historyChats[currentChatIndex].messages[messageIndex].content;
+
+    const handleHistory = () => {
+      setIsHistoryModalOpen(true);
+    };
+
+    const handleCloseHistory = () => {
+      setIsHistoryModalOpen(false);
+    };
     return (
       <>
+        {isHistoryModalOpen && (
+          <HistoryModal
+            onClose={handleCloseHistory}
+            userId={user.id}
+            sessionId={sessionId}
+            query={query}
+            currentRole={role}
+          />
+        )}
         <div className='markdown prose w-full md:max-w-full break-words dark:prose-invert dark share-gpt-message'>
           {markdownMode ? (
             <ReactMarkdown
@@ -135,6 +166,7 @@ const ContentView = memo(
             <span className='whitespace-pre-wrap'>{content}</span>
           )}
         </div>
+
         <div className='flex justify-end gap-2 w-full mt-2'>
           {isDelete || (
             <>
@@ -152,6 +184,7 @@ const ContentView = memo(
               <CopyButton onClick={handleCopy} />
               <EditButton setIsEdit={setIsEdit} />
               <DeleteButton setIsDelete={setIsDelete} />
+              <HistoryButton onClick={handleHistory} />
             </>
           )}
           {isDelete && (

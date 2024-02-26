@@ -1,13 +1,20 @@
 import useStore from '@store/store';
 import { useTranslation } from 'react-i18next';
-import { ChatInterface, ModelOptions,MessageInterface } from '@type/chat';
+import { ChatInterface, ModelOptions, MessageInterface } from '@type/chat';
 import { getChatCompletion, getChatCompletionStream } from '@api/api';
 import { parseEventSource } from '@api/helper';
-import { limitMessageTokens, updateTotalTokenUsed, countTokens } from '@utils/messageUtils';
+import {
+  limitMessageTokens,
+  updateTotalTokenUsed,
+  countTokens,
+} from '@utils/messageUtils';
 import { _defaultChatConfig } from '@constants/chat';
 import { officialAPIEndpoint } from '@constants/auth';
 import { supabase } from '@utils/supabaseClient';
-
+import {
+  storeMessageWithEmbedding,
+  fetchDocumentSections,
+} from '@utils/embedding';
 
 interface User {
   id: string; // UUID from Supabase auth
@@ -35,18 +42,24 @@ const useSubmit = () => {
   const generating = useStore((state) => state.generating);
   const currentChatIndex = useStore((state) => state.currentChatIndex);
   const setChats = useStore((state) => state.setChats);
-  const { token_number, consumed_token, user, setTokenNumber, setConsumedToken } = useStore(state => ({
+  const {
+    token_number,
+    consumed_token,
+    user,
+    setTokenNumber,
+    setConsumedToken,
+  } = useStore((state) => ({
     token_number: state.token_number,
     consumed_token: state.consumed_token,
     user: state.user as User,
     setTokenNumber: state.setTokenNumber,
-    setConsumedToken: state.setConsumedToken
+    setConsumedToken: state.setConsumedToken,
   }));
 
-  const sensitiveWords = useStore(state => state.sensitiveWords);
+  const sensitiveWords = useStore((state) => state.sensitiveWords);
 
   const checkForSensitiveWords = (messageContent: string): boolean => {
-    return sensitiveWords.some(word => messageContent.includes(word));
+    return sensitiveWords.some((word) => messageContent.includes(word));
   };
 
   const generateTitle = async (
@@ -85,7 +98,8 @@ const useSubmit = () => {
     if (!user) return;
 
     try {
-      const newConsumedTokenValue = consumed_token + (newTokensUsed * price_number);
+      const newConsumedTokenValue =
+        consumed_token + newTokensUsed * price_number;
       const { error } = await supabase
         .from('users')
         .update({ consumed_token: newConsumedTokenValue })
@@ -99,18 +113,20 @@ const useSubmit = () => {
     }
   };
 
-  const calculateNewTokensUsed = (messages: MessageInterface[], model: ModelOptions): number => {
+  const calculateNewTokensUsed = (
+    messages: MessageInterface[],
+    model: ModelOptions
+  ): number => {
     // Assuming countTokens always returns a number
     return countTokens(messages, model);
   };
 
-    // Function to get the last round of conversation
   // Function to get the last round of conversation
   const getLastRoundMessages = (messages: MessageInterface[]) => {
     if (!messages || messages.length === 0) {
       return []; // Return an empty array if messages is undefined or empty
     }
-    
+
     if (messages.length >= 2) {
       return messages.slice(-2); // Get the last two messages
     } else {
@@ -122,31 +138,50 @@ const useSubmit = () => {
   const calculateTokensForLastRound = async () => {
     const chats = useStore.getState().chats;
     if (!chats) {
-      console.error("Chats are undefined");
+      console.error('Chats are undefined');
       return 0; // Return 0 if chats are undefined
     }
     const currentChatIndex = useStore.getState().currentChatIndex;
     if (typeof currentChatIndex !== 'number') {
-      console.error("currentChatIndex is undefined or not a number");
+      console.error('currentChatIndex is undefined or not a number');
       return 0; // Return 0 if currentChatIndex is not defined or not a number
     }
     const model = chats[currentChatIndex].config.model;
-    const lastRoundMessages = getLastRoundMessages(chats[currentChatIndex].messages);
+    const lastRoundMessages = getLastRoundMessages(
+      chats[currentChatIndex].messages
+    );
     return calculateNewTokensUsed(lastRoundMessages, model);
   };
 
   const handleSubmit = async () => {
     if (token_number <= consumed_token) {
-      console.log("Insufficient tokens to proceed.");
+      console.log('Insufficient tokens to proceed.');
       return;
     }
     const chats = useStore.getState().chats;
     if (!chats) {
-      console.error("Chats are undefined");
+      console.error('Chats are undefined');
       return; // or handle this case appropriately
     }
-    const lastMessageContent = chats[currentChatIndex].messages[chats[currentChatIndex].messages.length - 1].content;
-    
+    const lastMessage =
+      chats[currentChatIndex].messages[
+        chats[currentChatIndex].messages.length - 1
+      ];
+
+    // 消息已生成，存储消息及其嵌入式表示
+
+    if (lastMessage.content.trim() !== '') {
+      console.log('Storing user message with embedding...');
+      await storeMessageWithEmbedding(
+        user.id, // 假设 user.id 是所需的 userId
+        currentChatIndex, // 假设 currentChatIndex 可以用作 sessionId
+        lastMessage.role,
+        lastMessage.content
+      );
+    }
+
+    const lastMessageContent = lastMessage.content;
+
     if (checkForSensitiveWords(lastMessageContent)) {
       // Handle sensitive word case
       const updatedChats = [...chats];
@@ -156,16 +191,20 @@ const useSubmit = () => {
       });
       setChats(updatedChats);
       setGenerating(false);
-      const newTokensForLastRound = await calculateTokensForLastRound();         
+      const newTokensForLastRound = await calculateTokensForLastRound();
 
       // Update the consumed token count in the database
       await updateConsumedTokenInSupabase(newTokensForLastRound);
       return;
     }
 
-
-    if (generating || !chats || chats.length === 0 || !chats[currentChatIndex]) {
-      console.log("Chats are not properly initialized or empty.");
+    if (
+      generating ||
+      !chats ||
+      chats.length === 0 ||
+      !chats[currentChatIndex]
+    ) {
+      console.log('Chats are not properly initialized or empty.');
       return;
     }
 
@@ -179,16 +218,46 @@ const useSubmit = () => {
     setChats(updatedChats);
     setGenerating(true);
 
+    const documentSections = await fetchDocumentSections(lastMessageContent);
+    const contextText = documentSections
+      .map((section) => section.section_text)
+      .join('\n\n');
+
     try {
       let stream;
       if (chats[currentChatIndex].messages.length === 0)
         throw new Error('No messages submitted!');
 
-      const messages = limitMessageTokens(
+      let messages = limitMessageTokens(
         chats[currentChatIndex].messages,
         chats[currentChatIndex].config.max_tokens,
         chats[currentChatIndex].config.model
       );
+      if (chats[currentChatIndex].title === 'ChristianGPT') {
+        const christianGPTMessages = [
+          // 系统消息，设置聊天环境，同时指明模型可以使用其联想能力
+          {
+            role: 'system',
+            content: `This is a special scenario where the model should use information from provided document sections while also leveraging its general knowledge and associative capabilities to answer questions.`,
+          },
+          // 用户消息，提供上下文文本
+          {
+            role: 'user',
+            content: `The following sections from Christian (Mormon) literature provide context for the discussion: ${contextText}`,
+          },
+          // 用户消息，提出问题
+          {
+            role: 'user',
+            content: `Based on the provided sections and your broader knowledge, please answer the following question: ${lastMessageContent}`,
+          },
+          // 如果需要，您可以在这里添加更多的指导性消息
+        ];
+
+        // 将特定规则的消息添加到原始消息数组中
+        messages = messages.concat(christianGPTMessages);
+        console.log('ChristianGPT messages:', messages);
+      }
+
       if (messages.length === 0) throw new Error('Message exceed max token!');
 
       // no api key (free)
@@ -215,14 +284,9 @@ const useSubmit = () => {
       }
 
       if (stream) {
-        if (stream.locked)
-          throw new Error(
-            'Oops, the stream is locked right now. Please try again'
-          );
         const reader = stream.getReader();
-        let reading = true;
         let partial = '';
-        while (reading && useStore.getState().generating) {
+        while (useStore.getState().generating) {
           const { done, value } = await reader.read();
           const result = parseEventSource(
             partial + new TextDecoder().decode(value)
@@ -230,7 +294,7 @@ const useSubmit = () => {
           partial = '';
 
           if (result === '[DONE]' || done) {
-            reading = false;
+            break;
           } else {
             const resultString = result.reduce((output: string, curr) => {
               if (typeof curr === 'string') {
@@ -250,18 +314,35 @@ const useSubmit = () => {
             setChats(updatedChats);
           }
         }
-        if (useStore.getState().generating) {
-          reader.cancel('Cancelled by user');
-        } else {
-          reader.cancel('Generation completed');
-        }
+        reader.cancel('Cancelled by user');
         reader.releaseLock();
         stream.cancel();
       }
 
+      const updatedChats: ChatInterface[] = JSON.parse(
+        JSON.stringify(useStore.getState().chats)
+      );
+      // 消息已生成，存储消息及其嵌入式表示
+      const newAssistantMessage =
+        updatedChats[currentChatIndex].messages[
+          updatedChats[currentChatIndex].messages.length - 1
+        ];
+      if (newAssistantMessage.content.trim() !== '') {
+        console.log('Storing assistant message with embedding...');
+        await storeMessageWithEmbedding(
+          user.id,
+          currentChatIndex,
+          newAssistantMessage.role,
+          newAssistantMessage.content
+        );
+      }
       // update tokens used in chatting
-      if (!chats || typeof currentChatIndex !== 'number' || !chats[currentChatIndex]) {
-        throw new Error("Chats or currentChatIndex is undefined");
+      if (
+        !chats ||
+        typeof currentChatIndex !== 'number' ||
+        !chats[currentChatIndex]
+      ) {
+        throw new Error('Chats or currentChatIndex is undefined');
       }
       const currChats = useStore.getState().chats;
       const countTotalTokens = useStore.getState().countTotalTokens;
@@ -303,7 +384,7 @@ const useSubmit = () => {
         updatedChats[currentChatIndex].title = title;
         updatedChats[currentChatIndex].titleSet = true;
         setChats(updatedChats);
-        
+
         // update tokens used for generating title
         if (countTotalTokens) {
           const model = _defaultChatConfig.model;
@@ -314,25 +395,22 @@ const useSubmit = () => {
         }
       }
       // Wait for the state to update with the LLM's response
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Calculate tokens for the last round including the LLM's response
-      const newTokensForLastRound = await calculateTokensForLastRound();         
+      const newTokensForLastRound = await calculateTokensForLastRound();
 
       // Update the consumed token count in the database
       await updateConsumedTokenInSupabase(newTokensForLastRound);
     } catch (e) {
       const err = e as Error; // Type assertion
-      console.error('Error:', err.message)
+      console.error('Error:', err.message);
       setError(err.message);
     }
     setGenerating(false);
-    
   };
 
   return { handleSubmit, error };
 };
-
-
 
 export default useSubmit;

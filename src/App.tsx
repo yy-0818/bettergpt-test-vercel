@@ -29,12 +29,14 @@ interface User {
   app_metadata?: { provider?: string; providers?: string[] }; // Metadata, optional
 }
 function App() {
-  const { user, setUser, setTokenNumber, setConsumedToken } = useStore(state => ({
-    user: state.user,
-    setUser: state.setUser,
-    setTokenNumber: state.setTokenNumber,
-    setConsumedToken: state.setConsumedToken
-  }));
+  const { user, setUser, setTokenNumber, setConsumedToken } = useStore(
+    (state) => ({
+      user: state.user,
+      setUser: state.setUser,
+      setTokenNumber: state.setTokenNumber,
+      setConsumedToken: state.setConsumedToken,
+    })
+  );
   const [isLoading, setLoading] = useState(true); // New loading state
 
   const initialiseNewChat = useInitialiseNewChat();
@@ -96,7 +98,7 @@ function App() {
             initialiseNewChat();
           }
         } catch (e: unknown) {
-          console.log(e);
+          // console.log(e);
           initialiseNewChat();
         }
         localStorage.removeItem('chats');
@@ -118,28 +120,35 @@ function App() {
   }, [user, isLoading]);
 
   if (!user || isLoading) {
-    return <SignIn onUserSignedIn={(signedInUser) => {
-      // Ensure signedInUser has the correct structure or convert it to match User type
-      // For example, if signedInUser is of a different type, map its properties to your User type
-      const userToSet: User = {
-        id: signedInUser.id,
-        aud: signedInUser.aud,
-        role: signedInUser.role || '', // Default value if role is undefined
-        email: signedInUser.email || '', // Default value if email is undefined
-        email_confirmed_at: signedInUser.email_confirmed_at || '',
-        created_at: signedInUser.created_at || '',
-        last_sign_in_at: signedInUser.last_sign_in_at || '',
-        full_name: signedInUser.full_name || '', // Assuming these are directly on signedInUser
-        avatar_url: signedInUser.avatar_url || '',
-        billing_address: signedInUser.billing_address || {},
-        payment_method: signedInUser.payment_method || {},
-        token_number: signedInUser.token_number || 0,
-        consumed_token: signedInUser.consumed_token || 0,
-        app_metadata: signedInUser.app_metadata || { provider: '', providers: [] }
-      };
-      setUser(userToSet); // Set user in store with the right structure
-      setLoading(false);
-    }} />;
+    return (
+      <SignIn
+        onUserSignedIn={(signedInUser) => {
+          // Ensure signedInUser has the correct structure or convert it to match User type
+          // For example, if signedInUser is of a different type, map its properties to your User type
+          const userToSet: User = {
+            id: signedInUser.id,
+            aud: signedInUser.aud,
+            role: signedInUser.role || '', // Default value if role is undefined
+            email: signedInUser.email || '', // Default value if email is undefined
+            email_confirmed_at: signedInUser.email_confirmed_at || '',
+            created_at: signedInUser.created_at || '',
+            last_sign_in_at: signedInUser.last_sign_in_at || '',
+            full_name: signedInUser.full_name || '', // Assuming these are directly on signedInUser
+            avatar_url: signedInUser.avatar_url || '',
+            billing_address: signedInUser.billing_address || {},
+            payment_method: signedInUser.payment_method || {},
+            token_number: signedInUser.token_number || 0,
+            consumed_token: signedInUser.consumed_token || 0,
+            app_metadata: signedInUser.app_metadata || {
+              provider: '',
+              providers: [],
+            },
+          };
+          setUser(userToSet); // Set user in store with the right structure
+          setLoading(false);
+        }}
+      />
+    );
   }
 
   return (
