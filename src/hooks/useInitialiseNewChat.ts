@@ -10,9 +10,9 @@ const useInitialiseNewChat = () => {
   const initialiseNewChat = () => {
     setChats([
       generateDefaultChat(),
-      generateDefaultChat('Doctor', null, 'Doctor'),
-      generateDefaultChat('Mentor', null, 'Mentor'),
-      generateDefaultChat('ChristianGPT', null, 'ChristianGPT'),
+      generateDefaultChat('Doctor', '', 'Doctor'),
+      generateDefaultChat('Mentor', '', 'Mentor'),
+      generateDefaultChat('ChristianGPT', '', 'ChristianGPT'),
     ]);
     setCurrentChatIndex(0);
   };

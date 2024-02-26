@@ -234,28 +234,27 @@ const useSubmit = () => {
         chats[currentChatIndex].config.model
       );
       if (chats[currentChatIndex].title === 'ChristianGPT') {
-        const christianGPTMessages = [
-          // 系统消息，设置聊天环境，同时指明模型可以使用其联想能力
+        const christianGPTMessages: MessageInterface[] = [
+          // System message, setting up the chat environment while indicating the model can use its associative capabilities
           {
-            role: 'system',
+            role: Role.System,
             content: `This is a special scenario where the model should use information from provided document sections while also leveraging its general knowledge and associative capabilities to answer questions.`,
           },
-          // 用户消息，提供上下文文本
+          // User message, providing context text
           {
-            role: 'user',
+            role: Role.User,
             content: `The following sections from Christian (Mormon) literature provide context for the discussion: ${contextText}`,
           },
-          // 用户消息，提出问题
+          // User message, asking a question
           {
-            role: 'user',
+            role: Role.User,
             content: `Based on the provided sections and your broader knowledge, please answer the following question: ${lastMessageContent}`,
           },
-          // 如果需要，您可以在这里添加更多的指导性消息
+          // ...more
         ];
-
-        // 将特定规则的消息添加到原始消息数组中
+        // You can add more instructional messages here if needed
         messages = messages.concat(christianGPTMessages);
-        console.log('ChristianGPT messages:', messages);
+        // console.log('ChristianGPT messages:', messages);
       }
 
       if (messages.length === 0) throw new Error('Message exceed max token!');

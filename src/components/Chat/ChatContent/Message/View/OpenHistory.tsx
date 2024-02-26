@@ -1,10 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { retrieveSimilarHistory } from '@utils/embedding';
-import { content } from 'html2canvas/dist/types/css/property-descriptors/content';
 
-const HistoryModal = ({ onClose, userId, sessionId, query, currentRole }) => {
-  const [historyData, setHistoryData] = React.useState(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+interface HistoryEntry {
+  id: string;
+  content: string;
+  role: string;
+}
+interface HistoryModalProps {
+  onClose: () => void;
+  userId: string;
+  sessionId: number;
+  query: string;
+  currentRole: string;
+}
+const HistoryModal: React.FC<HistoryModalProps> = ({
+  onClose,
+  userId,
+  sessionId,
+  query,
+  currentRole,
+}) => {
+  const [historyData, setHistoryData] = useState<HistoryEntry[] | null>(null); // Set type of historyData
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   React.useEffect(() => {
     const fetchData = async () => {

@@ -2,6 +2,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { ChatInterface, ConfigInterface, ModelOptions } from '@type/chat';
 import useStore from '@store/store';
 
+interface DefaultMessages {
+  ChatGPT: string;
+  Doctor: string;
+  Mentor: string;
+  ChristianGPT: string;
+}
 const date = new Date();
 const dateString =
   date.getFullYear() +
@@ -18,7 +24,7 @@ Carefully heed the user's instructions.
 Respond using Markdown.`;
 
 // Define default messages for each type of companion
-const defaultMessages = {
+const defaultMessages: DefaultMessages = {
   ChatGPT: _defaultSystemMessage,
   Doctor: `Hello! I'm Doctor AI, here to assist with your health questions. Remember, always consult with a real doctor for medical advice.`,
   Mentor: `Hi there! I'm Mentor AI, at your service to offer guidance and support on your life's journey.`,
@@ -26,7 +32,7 @@ const defaultMessages = {
 };
 
 // Generate the default message based on companion type
-const getDefaultMessage = (companionType: string): string => {
+const getDefaultMessage = (companionType: keyof DefaultMessages): string => {
   return defaultMessages[companionType] || defaultMessages['ChatGPT'];
 };
 

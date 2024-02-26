@@ -38,11 +38,13 @@ import { clone } from 'lodash';
 
 const ContentView = memo(
   ({
+    user,
     role,
     content,
     setIsEdit,
     messageIndex,
   }: {
+    user: string;
     role: string;
     content: string;
     setIsEdit: React.Dispatch<React.SetStateAction<boolean>>;

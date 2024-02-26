@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { retrieveSimilarHistory } from '@utils/embedding'; // Assuming this is the correct path to your utility function
 
-export const useSimilarHistory = (userId, sessionId, isModalOpen) => {
+export const useSimilarHistory = (
+  userId: string,
+  sessionId: number,
+  isModalOpen: boolean
+) => {
   const [historyRecords, setHistoryRecords] = useState([]);
 
   useEffect(() => {
