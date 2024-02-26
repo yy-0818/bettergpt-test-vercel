@@ -65,7 +65,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
         {isLoading ? (
           <div>Loading...</div>
         ) : mostSimilarEntry ? (
-          <div className='text-lg text-center text-gray-900 dark:text-white mb-4'>
+          <div className='text-lg text-center text-gray-900 dark:text-white mb-4 overflow-auto max-h-64'>
             {mostSimilarEntry.content}
           </div>
         ) : (
@@ -75,7 +75,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({
         )}
         <button
           onClick={onClose}
-          className=' py-2 px-4 bg-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors duration-200 rounded text-sm font-medium text-gray-900 dark:text-white'
+          className='py-2 px-4 bg-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors duration-200 rounded text-sm font-medium text-gray-900 dark:text-white'
         >
           Close
         </button>
