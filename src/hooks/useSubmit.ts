@@ -15,8 +15,9 @@ import {
   storeMessageWithEmbedding,
   fetchDocumentSections,
 } from '@utils/embedding';
+import { Role } from '@type/chat';
 
-interface User {
+export interface User {
   id: string; // UUID from Supabase auth
   aud: string; // Audience from Supabase auth
   role?: string; // Role from Supabase auth, optional as it might not always be present
@@ -237,17 +238,17 @@ const useSubmit = () => {
         const christianGPTMessages: MessageInterface[] = [
           // System message, setting up the chat environment while indicating the model can use its associative capabilities
           {
-            role: Role.System,
+            role: 'system',
             content: `This is a special scenario where the model should use information from provided document sections while also leveraging its general knowledge and associative capabilities to answer questions.`,
           },
           // User message, providing context text
           {
-            role: Role.User,
+            role: 'user',
             content: `The following sections from Christian (Mormon) literature provide context for the discussion: ${contextText}`,
           },
           // User message, asking a question
           {
-            role: Role.User,
+            role: 'user',
             content: `Based on the provided sections and your broader knowledge, please answer the following question: ${lastMessageContent}`,
           },
           // ...more

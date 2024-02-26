@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ChatInterface, ConfigInterface, ModelOptions } from '@type/chat';
 import useStore from '@store/store';
 
-interface DefaultMessages {
+export interface DefaultMessages {
   ChatGPT: string;
   Doctor: string;
   Mentor: string;
@@ -129,7 +129,7 @@ export const _defaultChatConfig: ConfigInterface = {
 export const generateDefaultChat = (
   title?: string,
   folder?: string,
-  companionType: string = 'ChatGPT' // Default to ChatGPT if no companionType is provided
+  companionType: keyof DefaultMessages = 'ChatGPT' // Default to ChatGPT if no companionType is provided
 ): ChatInterface => {
   const defaultSystemMessage = getDefaultMessage(companionType);
 

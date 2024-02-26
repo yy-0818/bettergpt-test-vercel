@@ -1,6 +1,6 @@
 import React from 'react';
 import useStore from '@store/store';
-import { generateDefaultChat } from '@constants/chat';
+import { generateDefaultChat, DefaultMessages } from '@constants/chat';
 import { ChatInterface } from '@type/chat';
 
 const useAddChat = () => {
@@ -8,7 +8,7 @@ const useAddChat = () => {
   const setCurrentChatIndex = useStore((state) => state.setCurrentChatIndex);
 
   // const addChat = (folder?:string) => {
-  const addChat = (folder?: string, companionType?: string) => {
+  const addChat = (folder?: string, companionType?: keyof DefaultMessages) => {
     // Add companionType parameter
     const chats = useStore.getState().chats;
     if (chats) {

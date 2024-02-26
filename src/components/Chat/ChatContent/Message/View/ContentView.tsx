@@ -35,16 +35,15 @@ import HistoryModal from '../View/OpenHistory';
 
 import CodeBlock from '../CodeBlock';
 import { clone } from 'lodash';
+import { User } from '@hooks/useSubmit';
 
 const ContentView = memo(
   ({
-    user,
     role,
     content,
     setIsEdit,
     messageIndex,
   }: {
-    user: string;
     role: string;
     content: string;
     setIsEdit: React.Dispatch<React.SetStateAction<boolean>>;
